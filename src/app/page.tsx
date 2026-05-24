@@ -1,94 +1,90 @@
-async function getProducts() {
+type Inventory = {
+  id: string;
+  totalStock: number;
+  reservedStock: number;
+  warehouse: {
+    name: string;
+  };
+};
 
+type Product = {
+  id: string;
+  name: string;
+  inventory: Inventory[];
+};
+
+async function getProducts(): Promise<Product[]> {
   const res = await fetch(
-    "http://localhost:3000/api/products",
+    `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/products`,
     {
       cache: "no-store",
     }
   );
 
+  if (!res.ok) {
+    throw new Error("Failed to fetch products");
+  }
+
   return res.json();
 }
 
 export default async function Home() {
-
   const products = await getProducts();
 
   return (
-
-    <main className="min-h-screen bg-gray-100 p-10 text-black">
-
-      <h1 className="text-4xl font-bold mb-8">
+    <main
+      style={{
+        padding: "40px",
+        backgroundColor: "#111",
+        minHeight: "100vh",
+        color: "white",
+      }}
+    >
+      <h1 style={{ marginBottom: "30px" }}>
         Allo Inventory System
       </h1>
 
-      <div className="grid gap-6">
+      {products.map((product) => (
+        <div
+          key={product.id}
+          style={{
+            border: "1px solid gray",
+            padding: "20px",
+            marginBottom: "20px",
+            borderRadius: "10px",
+          }}
+        >
+          <h2>{product.name}</h2>
 
-        {products.map((product: any) => (
+          {product.inventory.map((inv) => (
+            <div
+              key={inv.id}
+              style={{
+                marginTop: "10px",
+                padding: "10px",
+                border: "1px solid #333",
+              }}
+            >
+              <p>
+                Warehouse: {inv.warehouse.name}
+              </p>
 
-          <div
-            key={product.id}
-            className="bg-white rounded-xl shadow-md p-6"
-          >
+              <p>
+                Total Stock: {inv.totalStock}
+              </p>
 
-            <h2 className="text-2xl font-semibold mb-4">
-              {product.name}
-            </h2>
+              <p>
+                Reserved Stock: {inv.reservedStock}
+              </p>
 
-            <div className="space-y-4">
-
-              {product.inventory.map((item: any) => (
-
-                <div
-                  key={item.id}
-                  className="border rounded-lg p-4 bg-gray-50"
-                >
-
-                  <p className="mb-1">
-                    <span className="font-semibold">
-                      Warehouse:
-                    </span>
-                    {" "}
-                    {item.warehouse.name}
-                  </p>
-
-                  <p className="mb-1">
-                    <span className="font-semibold">
-                      Total Stock:
-                    </span>
-                    {" "}
-                    {item.totalStock}
-                  </p>
-
-                  <p className="mb-1">
-                    <span className="font-semibold">
-                      Reserved Stock:
-                    </span>
-                    {" "}
-                    {item.reservedStock}
-                  </p>
-
-                  <p className="mb-1">
-                    <span className="font-semibold">
-                      Available Stock:
-                    </span>
-                    {" "}
-                    {item.totalStock -
-                      item.reservedStock}
-                  </p>
-
-                </div>
-
-              ))}
-
+              <p>
+                Available:{" "}
+                {inv.totalStock - inv.reservedStock}
+              </p>
             </div>
-
-          </div>
-
-        ))}
-
-      </div>
-
+          ))}
+        </div>
+      ))}
     </main>
   );
 }
