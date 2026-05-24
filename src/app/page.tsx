@@ -14,8 +14,13 @@ type Product = {
 };
 
 async function getProducts(): Promise<Product[]> {
+  const baseUrl =
+    process.env.NODE_ENV === "production"
+      ? "https://allo-inventory-system-rho.vercel.app"
+      : "http://localhost:3000";
+
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/products`,
+    `${baseUrl}/api/products`,
     {
       cache: "no-store",
     }
