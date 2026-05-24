@@ -1,35 +1,15 @@
-type Inventory = {
-  id: string;
-  totalStock: number;
-  reservedStock: number;
-  warehouse: {
-    name: string;
-  };
-};
-
-type Product = {
-  id: string;
-  name: string;
-  inventory: Inventory[];
-};
-
-async function getProducts(): Promise<Product[]> {
-  const res = await fetch(
-    `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}/api/products`,
-    {
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch products");
-  }
-
-  return res.json();
-}
+import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
-  const products = await getProducts();
+  const products = await prisma.product.findMany({
+    include: {
+      inventory: {
+        include: {
+          warehouse: true,
+        },
+      },
+    },
+  });
 
   return (
     <main
@@ -40,9 +20,7 @@ export default async function Home() {
         color: "white",
       }}
     >
-      <h1 style={{ marginBottom: "30px" }}>
-        Allo Inventory System
-      </h1>
+      <h1 style={{ marginBottom: "30px" }}>Allo Inventory System</h1>
 
       {products.map((product) => (
         <div
@@ -65,22 +43,10 @@ export default async function Home() {
                 border: "1px solid #333",
               }}
             >
-              <p>
-                Warehouse: {inv.warehouse.name}
-              </p>
-
-              <p>
-                Total Stock: {inv.totalStock}
-              </p>
-
-              <p>
-                Reserved Stock: {inv.reservedStock}
-              </p>
-
-              <p>
-                Available:{" "}
-                {inv.totalStock - inv.reservedStock}
-              </p>
+              <p>Warehouse: {inv.warehouse.name}</p>
+              <p>Total Stock: {inv.totalStock}</p>
+              <p>Reserved Stock: {inv.reservedStock}</p>
+              <p>Available: {inv.totalStock - inv.reservedStock}</p>
             </div>
           ))}
         </div>
