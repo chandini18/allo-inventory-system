@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -12,7 +13,8 @@ type Reservation = {
   expiresAt: string;
 };
 
-export default function ReservationPage({ params }: { params: { id: string } }) {
+export default function ReservationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [error, setError] = useState("");
@@ -20,7 +22,7 @@ export default function ReservationPage({ params }: { params: { id: string } }) 
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`/api/reservations/${params.id}`)
+    fetch(`/api/reservations/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setReservation(data);
@@ -28,7 +30,7 @@ export default function ReservationPage({ params }: { params: { id: string } }) 
         setTimeLeft(diff > 0 ? diff : 0);
       })
       .catch(() => setError("Failed to load reservation"));
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -42,7 +44,7 @@ export default function ReservationPage({ params }: { params: { id: string } }) 
   }, [timeLeft]);
 
   async function handleConfirm() {
-    const res = await fetch(`/api/reservations/${params.id}/confirm`, { method: "POST" });
+    const res = await fetch(`/api/reservations/${id}/confirm`, { method: "POST" });
     const data = await res.json();
     if (!res.ok) {
       setError(`Error ${res.status}: ${data.error}`);
@@ -53,7 +55,7 @@ export default function ReservationPage({ params }: { params: { id: string } }) 
   }
 
   async function handleRelease() {
-    const res = await fetch(`/api/reservations/${params.id}/release`, { method: "POST" });
+    const res = await fetch(`/api/reservations/${id}/release`, { method: "POST" });
     const data = await res.json();
     if (!res.ok) {
       setError(`Error ${res.status}: ${data.error}`);
