@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Allo Inventory System
 
-## Getting Started
+A full-stack inventory reservation system built with Next.js, Prisma, and Supabase (PostgreSQL).
 
-First, run the development server:
+## Live Demo
 
-```bash
+[https://allo-inventory-system-rho.vercel.app](https://allo-inventory-system-rho.vercel.app)
+
+## How to Run Locally
+
+### 1. Clone the repo
+
+\```bash
+git clone https://github.com/chandinij18/allo-inventory-system.git
+cd allo-inventory-system
+\```
+
+### 2. Install dependencies
+
+\```bash
+npm install
+\```
+
+### 3. Set up environment variables
+
+Create a `.env` file in the root:
+
+\```env
+DATABASE_URL="postgresql://postgres.your-ref:YOUR-PASSWORD@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres:YOUR-PASSWORD@db.your-ref.supabase.co:5432/postgres"
+\```
+
+### 4. Run migrations and seed
+
+\```bash
+npx prisma migrate deploy
+npx prisma db seed
+\```
+
+### 5. Start the dev server
+
+\```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+\```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /api/products | List products with stock per warehouse |
+| POST | /api/reservations | Reserve units — returns 409 if out of stock |
+| GET | /api/reservations/:id | Get reservation details |
+| POST | /api/reservations/:id/confirm | Confirm reservation — returns 410 if expired |
+| POST | /api/reservations/:id/release | Release reservation early |
 
-## Learn More
+## Concurrency Safety
 
-To learn more about Next.js, take a look at the following resources:
+The reservation endpoint uses a Prisma `$transaction` to wrap the stock check and update atomically. This prevents race conditions — if two requests arrive simultaneously for the last unit, the database transaction ensures exactly one succeeds and the other gets a 409.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Expiry Mechanism
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Reservations expire after 15 minutes (`expiresAt = now + 15 min`). Expiry is handled via **lazy cleanup on read** — when a confirm request comes in, the API checks if `now > expiresAt` and rejects with 410 if expired, updating the status to `EXPIRED`. The frontend countdown timer makes the expiry visible to the user in real time.
 
-## Deploy on Vercel
+With more time, I would add a Vercel Cron job to periodically release expired reservations and return stock to available inventory automatically.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Trade-offs and Things I'd Do Differently
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **No idempotency keys** — the bonus feature was not implemented. Would use a Redis-backed idempotency store with Upstash.
+- **Lazy expiry** — expired reservations don't auto-release stock until a confirm is attempted. A cron job would handle this properly in production.
+- **No authentication** — any user can reserve or confirm any reservation. Would add auth in production.
+- **Basic UI** — the frontend is functional but unstyled. Would use Tailwind + shadcn/ui with more time.
