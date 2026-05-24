@@ -1,4 +1,15 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+type ProductWithInventory = Prisma.ProductGetPayload<{
+  include: {
+    inventory: {
+      include: {
+        warehouse: true;
+      };
+    };
+  };
+}>;
 
 export default async function Home() {
   const products = await prisma.product.findMany({
@@ -22,7 +33,7 @@ export default async function Home() {
     >
       <h1 style={{ marginBottom: "30px" }}>Allo Inventory System</h1>
 
-      {products.map((product) => (
+      {products.map((product: ProductWithInventory) => (
         <div
           key={product.id}
           style={{
@@ -34,7 +45,7 @@ export default async function Home() {
         >
           <h2>{product.name}</h2>
 
-          {product.inventory.map((inv) => (
+          {product.inventory.map((inv: ProductWithInventory["inventory"][0]) => (
             <div
               key={inv.id}
               style={{
